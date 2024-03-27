@@ -40,7 +40,7 @@ def objective_wrapper(args):
         }
 
         # Assume run() trains the model and returns the path to a file with similarity scores
-        similarity_file = run(params, args, tuning = False) #False uses Test split; True uses Validation split
+        similarity_file = run(params, args, trial.number, tuning = False) #False uses Test split; True uses Validation split
         
         ref_pmids, data = precision.read_file(similarity_file)
         vector = precision.generate_vector(ref_pmids, data, args.classes)
