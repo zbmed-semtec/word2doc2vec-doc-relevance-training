@@ -88,7 +88,7 @@ def generate_Word2Vec_model(article_doc: list, pmids: list, params: list, filepa
     wv_model.save(filepath_out)
 
 
-def generate_document_embeddings(pmids: str, article_doc: list, gensim_model_path: str = ""):
+def generate_document_embeddings(pmids: str, article_doc: list, params: list):
     '''
     Generates document embeddings from a titles and abstracts in a given paper using word2vec and calculating the cenroids of all given word embeddings.
     If no gensim model is given, the 'glove-wiki-gigaword-200' gensim model is used.
@@ -108,23 +108,22 @@ def generate_document_embeddings(pmids: str, article_doc: list, gensim_model_pat
     import os
 
     st = time.time()
+    filepath_out = "data/model"
 
-    word_vectors = None
-    has_model = gensim_model_path != ""
-    if has_model:
-        word_vectors = model.Word2Vec.load(gensim_model_path)
+    generate_Word2Vec_model(article_doc, pmids, params, filepath_out)
+
+    word_vectors = model.Word2Vec.load(filepath_out)
     missing_words = 0
     iteration = 0
     document_embeddings = []
     for iteration in range(len(pmids)):
         # Retrieve word embeddings.
         embedding_list = []
-        if (has_model):
-            for word in article_doc[iteration]:
-                try:
-                    embedding_list.append(word_vectors.wv[word])
-                except:
-                    missing_words += 1
+        for word in article_doc[iteration]:
+            try:
+                embedding_list.append(word_vectors.wv[word])
+            except:
+                missing_words += 1
 
         # Generate document embeddings from word embeddings using word-vector centroids.
         if len(embedding_list) == 0:
@@ -160,7 +159,7 @@ def saveWord2Doc2VecModel(df, output_file):
 
 # def createDoc2VecModel(pmids: List[str], docs: List[List[str]], params: dict) -> Doc2Vec:
 #     """
-#     Create and train the Doc2Vec model using Gensim for the documents 
+#     Create and train the Doc2Vec model using Gensim for the documents
 #     in the corpus.
 
 #     Parameters
@@ -168,7 +167,7 @@ def saveWord2Doc2VecModel(df, output_file):
 #     pmids: List[str]
 #             A list of all pubmed ids in the corpus.
 #     docs: List[List[str]]
-#             A list of lists where each sub-list contains the words 
+#             A list of lists where each sub-list contains the words
 #             in the cleaned/processed document (title + abstract).
 #     params: dict
 #             Dictionary containing the parameters for the Doc2Vec model.
@@ -259,6 +258,7 @@ def generate_embeddings(modeldf, pmids, output_file):
     for i in range(len(pmids)):
         print(modeldf['PID'])
     save_embeddings_to_pickle(pmids, embeddings_list, output_file)
+
 
 def save_embeddings_to_pickle(pmids, embeddings_list, output_file):
     data = {"PID": pmids, "Embedding": embeddings_list}
