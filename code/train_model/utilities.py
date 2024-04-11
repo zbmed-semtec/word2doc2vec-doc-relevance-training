@@ -1,3 +1,4 @@
+
 import tqdm
 import gensim
 import numpy as np
@@ -147,7 +148,7 @@ def generate_document_embeddings(pmids: str, article_doc: list, params: list):
     import pandas as pd
     df = pd.DataFrame(list(zip((pmids), document_embeddings)),
                       columns=['PID', 'Embedding'])
-    df = df.sort_values('pmids')
+    df = df.sort_values('PID')
     return df
     # os.makedirs(f"{directory_out}/{param_iteration}", exist_ok=True)
     # df.to_pickle(f'{directory_out}/{param_iteration}/embeddings.pkl')
@@ -256,7 +257,7 @@ def get_similarity_scores(input_relevance_matrix, embeddings, output_matrix_name
 def generate_embeddings(modeldf, pmids, output_file):
     embeddings_list = []
     for i in range(len(pmids)):
-        print(modeldf['PID'])
+        embeddings_list.append(modeldf.query("PID=='" + str(pmids[i])  + "'")["Embedding"])
     save_embeddings_to_pickle(pmids, embeddings_list, output_file)
 
 
