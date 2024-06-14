@@ -1,4 +1,3 @@
-import logging
 import os
 import time
 import argparse
@@ -13,10 +12,10 @@ def run(best_params, args, tuning=False, save_model=False):
 
     # 2) Train the model with 80% of the data and best parameters
     start = time.time()
-    model = utilities.generate_document_embeddings(
-        train_pmids, train_docs, best_params)
+    model = utilities.createWord2VecModel(train_docs, best_params)
     print(f"Time taken to train the model: {time.time() - start} seconds")
     print("RELISH Hybrid Dord2Vec Model Generated.")
+    print(model, "Model is being used.")
 
     # 3) Set the validation/test data to be used based on tuning parameter
     if tuning:
@@ -33,7 +32,7 @@ def run(best_params, args, tuning=False, save_model=False):
     print(f"Retrieved RELISH Cleaned {dataset_type} Data")
 
     # 5) Generate the embeddings: pd.DataFrame for loaded docs
-    embeddings_df = model
+    embeddings_df = utilities.generate_embeddings(pmids, docs)
     print(f"RELISH {dataset_type} Embeddings Pickle File Generated.")
 
     # 6) Generate the cosine similarity matrix: pd.DataFrame for the generated embeddings
@@ -50,7 +49,7 @@ def run(best_params, args, tuning=False, save_model=False):
 
     # 8) Save the model in the given path if specified
     if save_model:
-        model_file = f"output_{args.classes}/model/Doc2Vec_model_{args.classes}"
-        utilities.save_embeddings_to_pickle(model, model_file)
+        model_file = f"output_{args.classes}/model/Word2Vec_model_{args.classes}"
+        utilities.saveWord2VecModel(model, model_file)
 
     return similarity_df, embeddings_df, model

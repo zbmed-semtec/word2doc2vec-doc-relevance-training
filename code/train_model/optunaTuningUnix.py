@@ -1,5 +1,3 @@
-
-
 import precision as precision
 import utilities as utilities
 from train import run
@@ -46,12 +44,12 @@ def save_data_with_lock(file_path, data, save_function):
 def save_model_data(args, model, embeddings, similarity):
 
     # 1) Define the file path to save the model data
-    model_file = f"output_{args.classes}/model/Doc2Vec_best_model_{args.classes}"
+    model_file = f"output_{args.classes}/model/Word2Vec_best_model_{args.classes}"
     embeddings_file = f"output_{args.classes}/embeddings/best_embeddings_{args.classes}.pkl"
     similarity_file = f"output_{args.classes}/evaluation/best_cosine_similarity_{args.classes}.tsv"
 
     # 2) Save the model
-    save_data_with_lock(model_file, model, utilities.saveDoc2VecModel)
+    save_data_with_lock(model_file, model, utilities.saveWord2VecModel)
 
     # 3) Save the embeddings
     save_data_with_lock(embeddings_file, embeddings,
@@ -63,19 +61,16 @@ def save_model_data(args, model, embeddings, similarity):
 
 
 def objective_wrapper(args):
-
-
     def objective(trial):
-        # 1) Suggest hyperparameters for Doc2Vec
+
+        # 1) Suggest hyperparameters for Word2Vec
         sg = trial.suggest_int('sg', 0, 1)
-
-        vector_size = trial.suggest_int('vector_size', 100, 500, step=5)
+        vector_size = trial.suggest_int('vector_size', 100, 500, step=50)
         window = trial.suggest_int('window', 5, 15)
-        min_count = trial.suggest_int('min_count', 1, 5)
-        epochs = trial.suggest_int('epochs', 5, 15)
+        min_count = 1  # trial.suggest_int('min_count', 1, 5)
+        epochs = trial.suggest_int('window', 5, 15)
         workers = 8  # Always set to 8
-
-        print(f"trial: {trial.params}")
+        seed = 42  # Ensuring reproducibility
 
         # 2) Use args here as needed, e.g., args.input, args.test
         params = {
@@ -84,7 +79,8 @@ def objective_wrapper(args):
             "window": window,
             "min_count": min_count,
             "epochs": epochs,
-            "workers": workers
+            "workers": workers,
+            "seed": seed
         }
 
         # 3) run(): Trains the model with specified parameters and returns similarity scores, embeddings, and the trained model itself.
@@ -139,13 +135,12 @@ def objective_wrapper(args):
     return objective
 
 
-def run_optuna_optimization(args, log_file=None, n_trials=10, n_jobs=1):
+def run_optuna_optimization(args, n_trials=10, n_jobs=1):
     """
     Runs an Optuna optimization process.
 
     Parameters:
         args: Various configuration and running parameters for the optimization.
-        log_file (str, optional): Path to a log file where results should be recorded. Default is None.
         n_trials (int, optional): The number of trials to conduct. Default is 10.
         n_jobs (int, optional): The number of jobs to run in parallel. Default is 1.
 
@@ -154,6 +149,11 @@ def run_optuna_optimization(args, log_file=None, n_trials=10, n_jobs=1):
     """
 
     # 1) Define the log file to log the results
+    log_directory = f"output_{args.classes}"
+    if not os.path.exists(log_directory):
+        os.makedirs(log_directory)
+
+    log_file = f"output_{args.classes}/Optuna_trials_{args.classes}.log"
     logging.basicConfig(filename=log_file, level=logging.INFO,
                         format='%(asctime)s - %(levelname)s: %(message)s')
 
@@ -172,14 +172,10 @@ def run_optuna_optimization(args, log_file=None, n_trials=10, n_jobs=1):
 
     # 3) Load the existing optuna sampler if any
     sampler_file = f"output_{args.classes}/optuna_sampler_{args.classes}.pkl"
-    try:
-        restored_sampler = pickle.load(open(sampler_file, "rb"))
-        print('Loading the existing study sampler!')
-    except:
-        restored_sampler = None
+    restored_sampler = optuna.samplers.TPESampler(seed=42)
 
     # 4) Load the existing study or create a new one
-    study = optuna.create_study(direction='maximize', study_name="Doc2Vec_tuning",
+    study = optuna.create_study(direction='maximize', study_name="Word2Vec_tuning",
                                 storage=study_storage, load_if_exists=True, sampler=restored_sampler)
 
     # 5) Define a callback to log the trial information
