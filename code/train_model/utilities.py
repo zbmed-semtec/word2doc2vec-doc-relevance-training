@@ -6,9 +6,41 @@ from scipy.spatial.distance import cosine
 from gensim.models import Word2Vec
 from typing import Union, List
 
+def createWord2VecModel(docs: List[List[str]], params: dict):
+    '''
+    Create and train the Word2Vec model using Gensim for the documents in the corpus.
+
+    Parameters
+    ----------
+    pmids: List[str]
+            A list of all pubmed ids in the corpus.
+    docs: List[List[str]]
+            A list of lists where each sub-list contains the words 
+            in the cleaned/processed document (title + abstract).
+    params: dict
+            Dictionary containing the parameters for the Doc2Vec model.
+    '''
+    # Each document is treated as a separate sentence
+    model = Word2Vec(sentences=docs, **params)
+    # Train the model using the sentences
+    model.train(docs, total_examples=model.corpus_count, epochs=model.epochs)
+    # Save the model to a file
+    model.save("word2vec_RELISH")
+    return model
+    # import itertools
+    # corpus_iterable = list(itertools.chain.from_iterable(docs))
+    # sentence_list = []
+    # for doc in docs:
+    #     sentence_list.append(doc)
+    # # params['sentences'] = sentence_list
+    # model = Word2Vec(**params)
+    # model.build_vocab(corpus_iterable)
+    # model.train([corpus_iterable], total_examples=model.corpus_count,
+    #             epochs=model.epochs)
+    # model.save("word2vec_RELISH")
+    # return model
+
 # Retrieves cleaned data from RELISH and TREC npy files
-
-
 def process_data_from_npy(file_path_in: str = None) -> Union[List[str], List[List[str]], List[List[str]], List[List[str]]]:
     """
     Retrieves cleaned data from RELISH and TREC npy files, separating each column 
@@ -35,97 +67,31 @@ def process_data_from_npy(file_path_in: str = None) -> Union[List[str], List[Lis
     doc = np.load(file_path_in, allow_pickle=True)
 
     pmids = []
-    article_docs = []
+    docs = []
 
-    for line in range(len(doc)):
-        pmids.append(int(doc[line][0]))
-
-        # Check if the element is a NumPy array before using tolist
-        if isinstance(doc[line][1], np.ndarray):
-            article_docs.append(doc[line][1].tolist())
+    for line in doc:
+        pmids.append(line[0])
+        if type(line[1]) == str:
+            title_content = line[1].strip('][').split(', ')
+            title = ' '.join(title_content).replace("\'", "")
+            title_tokens = title.split(" ")
         else:
-            article_docs.append(doc[line][1])
+            title_tokens = line[1]
 
-        # Check if the element is a NumPy array before using tolist
-        if isinstance(doc[line][2], np.ndarray):
-            article_docs[line].extend(doc[line][2].tolist())
+        if type(line[2]) == str:
+            abstract_content = line[2].strip('][').split(', ')
+            abstract = ' '.join(abstract_content).replace("\'", "")
+            abstract_tokens = abstract.split(" ")
         else:
-            article_docs[line].extend(doc[line][2])
-    return (pmids, article_docs)
+            abstract_tokens = line[2]
 
-# def createWord2VecModel(docs: List[List[str]], params: dict) -> Word2Vec:
-#     """
-#     Create and train the Doc2Vec model using Gensim for the documents
-#     in the corpus.
+        docs.append(title_tokens + abstract_tokens)
 
-#     Parameters
-#     ----------
-#     pmids: List[str]
-#             A list of all pubmed ids in the corpus.
-#     docs: List[List[str]]
-#             A list of lists where each sub-list contains the words
-#             in the cleaned/processed document (title + abstract).
-#     params: dict
-#             Dictionary containing the parameters for the Doc2Vec model.
-#     Returns
-#     -------
-#     model: Doc2Vec
-#             Doc2Vec model.
-#     """
-#     # tagged_data = [TaggedDocument(words=_d, tags=[str(pmids[i])])
-#     #                for i, _d in enumerate(docs)]
-#     # import itertools
-#     # corpus_iterable = list(itertools.chain.from_iterable(docs))
-#     sentence_list = []
-#     for doc in docs:
-#         sentence_list.append(doc)
-#     params['sentences'] = sentence_list
-#     model = Word2Vec(**params)
-#     # model.build_vocab(corpus_iterable)
-#     # model.train(corpus_iterable, total_examples=model.corpus_count,
-#     #             epochs=model.epochs)
+    return (pmids, docs)
 
-#     return model
-
-
-def createWord2VecModel(docs: List[List[str]], params: dict) -> Word2Vec:
+def saveWord2Doc2VecModel(model: Word2Vec, output_file: str) -> None:
     """
-    Create and train the Word2Vec model using Gensim for the words of documents 
-    in the corpus.
-
-    Parameters
-    ----------
-    docs: List[List[str]]
-            A list of lists where each sub-list contains the words 
-            in the cleaned/processed document (title + abstract).
-    params: dict
-            Dictionary containing the parameters for the Word2Vec model.
-    Returns
-    -------
-    model: Word2Vec
-            Word2Vec model.
-    """
-    # tagged_data = [TaggedDocument(words=_d, tags=[str(pmids[i])])
-    #                for i, _d in enumerate(docs)]
-    import itertools
-    corpus_iterable = list(itertools.chain.from_iterable(docs))
-    sentence_list = []
-    for doc in docs:
-        sentence_list.append(doc)
-    # params['sentences'] = sentence_list
-    model = Word2Vec(**params)
-    model.build_vocab(corpus_iterable)
-    model.train([corpus_iterable], total_examples=model.corpus_count,
-                epochs=model.epochs)
-    model.save("word2vec_RELISH")
-    print(len(corpus_iterable))
-    print(f"Model length: {len(model.wv)}")
-    return model
-
-
-def saveWord2VecModel(model: Word2Vec, output_file: str) -> None:
-    """
-    Saves the Word2Vec model.
+    Saves the Word2Doc2Vec model.
 
     Parameters
     ----------
@@ -135,25 +101,6 @@ def saveWord2VecModel(model: Word2Vec, output_file: str) -> None:
             File path of the Word2Vec model generated.
     """
     model.save(output_file)
-
-
-def loadWord2VecModel(model_path: str) -> None:
-    """
-    Loads the saved Word2Vec model.
-
-    Parameters
-    ----------
-    model_path: str
-            Path of the Word2Vec model.
-
-    Return
-    ----------
-    model: Word2Vec
-            Word2Vec model.
-    """
-    model = gensim.models.Word2Vec.load(model_path)
-    return model
-
 
 def calculate_cosine_similarity(vector_1: np.ndarray, vector_2: np.ndarray) -> float:
     """
@@ -205,7 +152,7 @@ def get_similarity_scores(input_relevance_matrix: str, embeddings_df: pd.DataFra
 
     # 3) Create a dictionary to store embeddings
     embeddings_dict = {int(pmid): embedding for pmid, embedding in zip(
-        embeddings_df['PID'], embeddings_df['Embedding'])}
+        embeddings_df['PMID'], embeddings_df['Embedding'])}
 
     # 4) Create a list of reference and assessed PMID pairs
     pmid_pairs = list(
@@ -216,24 +163,20 @@ def get_similarity_scores(input_relevance_matrix: str, embeddings_df: pd.DataFra
         try:
             ref_pmid_vector = embeddings_dict[ref_pmid]
             assessed_pmid_vector = embeddings_dict[assessed_pmid]
-            if ref_pmid_vector is not None and assessed_pmid_vector is not None:
+            if len(ref_pmid_vector) > 0 and len(assessed_pmid_vector) > 0:
                 cosine_similarity = round(calculate_cosine_similarity(
                     ref_pmid_vector, assessed_pmid_vector), 4)
                 relevance_matrix_df.loc[(relevance_matrix_df['PID1'] == ref_pmid) & (
                     relevance_matrix_df['PID2'] == assessed_pmid), 'Cosine Similarity'] = cosine_similarity
             else:
-                # if ref_pmid_vector == None:
-                #     print(f"Missing ref_pmid: {ref_pmid}")
-                # if assessed_pmid_vector == None:
-                #     print(f"Missing assessed_pmid: {assessed_pmid}")
                 continue
+
         except KeyError as e:
             print(
                 f"\nKeyError: {e}, ref_pmid: {ref_pmid}, assessed_pmid: {assessed_pmid}")
             break
 
     return relevance_matrix_df
-
 
 def save_similarity_to_tsv(df: pd.DataFrame, output_file: str) -> None:
     """
@@ -248,86 +191,83 @@ def save_similarity_to_tsv(df: pd.DataFrame, output_file: str) -> None:
     """
     df.to_csv(output_file, index=False, sep="\t")
 
-
-def generate_embeddings(pmids: List[str], docs: List[List[str]]) -> pd.DataFrame:
-    """
-    Generate embeddings for a list of documents using a trained Word2Vec model.
-
-    Parameters:
+def generate_embeddings(model: Word2Vec, pmids: str, article_doc: list) -> pd.DataFrame:
+    '''
+    Generates document embeddings from titles and abstracts in a given paper using Word2Vec and calculating the centroids 
+    of all given word embeddings.
+    
+    Parameters
     ----------
-    model : Word2Vec
-        The trained Word2Vec model used for generating embeddings.
-    pmids : List[str]
-        List of PubMed IDs corresponding to the documents.
-    docs : List[List[str]]
-        List of documents, where each document is represented as a list of words.
-
-    Returns:
+    model: Word2Vec
+        Word2Vec model.
+    pmids: list of str
+        The list of all PMIDs which are processed.
+    article_doc: list of list of str
+        A two-dimensional list of all tokenized article documents (title + abstract).
+    
+    Returns
     -------
     embeddings_df : pd.DataFrame
         DataFrame containing PubMed IDs and their corresponding embeddings.
-    """
-    document_embeddings = []
-    all_words = 0
-    missing_words = 0
-    # Add new words to word2vec model
-    new_words = []
-    model = Word2Vec.load("word2vec_RELISH")
-    for doc in docs:
-        for word in doc:
-            if word not in model.wv:
-                new_words.append(word)
-    # min_count needs to be set to 1, otherwise some docs won't have a single word recognized.
-    model.min_count = 1
-    model.build_vocab([new_words], update=True)
-    model.train(new_words, total_examples=model.corpus_count + len(new_words),
-                epochs=model.epochs)
-    print(f"Model length: {len(model.wv)}")
-    for doc in docs:
-        # Infer vector for each document
-        # vector = model.infer_vector(doc)
-        # document_embeddings.append(vector)
+    null_vector_count : int
+        The count of documents that resulted in a null vector.
+    '''
 
+    data_dict = {}
+    missing_words = 0
+    word_count = 0
+    iteration = 0
+    document_embeddings = []
+    null_vector_count = 0  # Initialize counter for null vector documents
+
+    for iteration in range(len(pmids)):
+        missing_words = 0
         # Retrieve word embeddings.
         embedding_list = []
-        missing_words_list = []
-        for word in doc:
-            if (word in model.wv):
+        for word in article_doc[iteration]:
+            word_count += 1
+            try:
                 embedding_list.append(model.wv[word])
-                all_words += 1
-            else:
+            except:
                 missing_words += 1
-                missing_words_list.append(word)
-                print(f"Missing word is in new_words: {word in new_words}")
+        if missing_words == word_count:
+            print(f"OOV words for {pmids[iteration]}: {missing_words} from a total of {word_count} words")
+        word_count = 0
 
         # Generate document embeddings from word embeddings using word-vector centroids.
         if len(embedding_list) == 0:
-            # This can be caused by a high min-count parameter or missing vocabulary when using a pretrained model
-            document_embeddings.append(None)
+            document_embeddings.append([])
+            null_vector_count += 1  # Increment the counter when null vector is encountered
             continue
-        vector = [0.0] * model.vector_size
 
+        document = [0.0] * model.vector_size
         for dim in range(model.vector_size):
             for word_embeddings in embedding_list:
-                vector[dim] += word_embeddings[dim]
-            vector[dim] = vector[dim] / len(embedding_list)
-        document_embeddings.append(vector)
+                document[dim] += word_embeddings[dim]
+            document[dim] = document[dim] / len(embedding_list)
+        document_embeddings.append(document)
 
-    data = {"PID": pmids, "Embedding": document_embeddings}
+    data = {"PMID": pmids, "Embedding": document_embeddings}
     embeddings_df = pd.DataFrame(data)
-    embeddings_df = embeddings_df.sort_values("PID")
-    return embeddings_df
+    embeddings_df = embeddings_df.sort_values("PMID")
+    print("Null vector count:", null_vector_count)
+    return embeddings_df, null_vector_count
 
+def save_embeddings_to_pickle(embeddings_df, output_file):
+    embeddings_df.to_pickle(output_file)
+    print(f"Embeddings saved to {output_file}")
 
-def save_embeddings_to_pickle(df: pd.DataFrame, output_file: str) -> None:
+def saveWord2VecModel(model: Word2Vec, output_file: str) -> None:
     """
-    Save the DataFrame containing document embeddings to a pickle file.
+    Saves the Word2Vec model.
 
-    Parameters:
+    Parameters
     ----------
-    df : pd.DataFrame
-        DataFrame containing embeddings to be saved.
-    output_file : str
-        The file path where the DataFrame will be saved in pickle format.
+    model: Word2Vec
+            Word2Vec model.
+    output_file: str
+            File path of the Word2Vec model generated.
     """
-    df.to_pickle(output_file)
+    model.save(output_file)
+
+

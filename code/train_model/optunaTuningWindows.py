@@ -1,13 +1,3 @@
-import precision as precision
-import utilities as utilities
-from train import run
-from tqdm import tqdm
-import pandas as pd
-import numpy as np
-import argparse
-import logging
-import optuna
-import pickle
 import os
 
 import msvcrt  # For Windows systems
@@ -21,6 +11,16 @@ import threading
 # Define a lock for synchronization
 precision_lock = threading.Lock()
 
+import precision as precision
+import utilities as utilities
+from train import run
+from tqdm import tqdm
+import pandas as pd
+import numpy as np
+import argparse
+import logging
+import optuna
+import pickle
 
 def save_data_with_lock(file_path, data, save_function):
     """Utility function to handle file locking, data saving, and unlocking."""
@@ -49,15 +49,13 @@ def save_model_data(args, model, embeddings, similarity):
     similarity_file = f"output_{args.classes}/evaluation/best_cosine_similarity_{args.classes}.tsv"
 
     # 2) Save the model
-    save_data_with_lock(model_file, model, utilities.saveDoc2VecModel)
+    save_data_with_lock(model_file, model, utilities.saveWord2Doc2VecModel)
 
     # 3) Save the embeddings
-    save_data_with_lock(embeddings_file, embeddings,
-                        utilities.save_embeddings_to_pickle)
+    save_data_with_lock(embeddings_file, embeddings, utilities.save_embeddings_to_pickle)
 
     # 4) Save the similarity scores
-    save_data_with_lock(similarity_file, similarity,
-                        utilities.save_similarity_to_tsv)
+    save_data_with_lock(similarity_file, similarity, utilities.save_similarity_to_tsv)
 
 
 def objective_wrapper(args):
@@ -67,9 +65,10 @@ def objective_wrapper(args):
         sg = trial.suggest_int('sg', 0, 1)
         vector_size = trial.suggest_int('vector_size', 100, 500, step=5)
         window = trial.suggest_int('window', 5, 15)
-        min_count = trial.suggest_int('min_count', 1, 5)
+        min_count = trial.suggest_int('min_count', 1, 3)
         epochs = trial.suggest_int('epochs', 5, 15)
         workers = 8  # Always set to 8
+        seed = 42 # Ensuring reproducibility
 
         # 2) Use args here as needed, e.g., args.input, args.test
         params = {
@@ -78,12 +77,12 @@ def objective_wrapper(args):
             "window": window,
             "min_count": min_count,
             "epochs": epochs,
-            "workers": workers
+            "workers": workers,
+            "seed": seed
         }
 
         # 3) run(): Trains the model with specified parameters and returns similarity scores, embeddings, and the trained model itself.
-        similarity_df, embeddings_df, model = run(
-            params, args, tuning=True, save_model=False)
+        similarity_df, embeddings_df, model = run(params, args, tuning=True, save_model=False)
         """
             NOTE: The 'tuning' parameter dictates the dataset split used during the model run:
             - If 'tuning' is set to True, the Validation split is used for model tuning.
@@ -92,8 +91,7 @@ def objective_wrapper(args):
 
         # 4) Compute precision@5 for all the reference pmids
         ref_pmids = similarity_df["PID1"].unique()
-        vector = precision.generate_vector(
-            ref_pmids, similarity_df, args.classes)
+        vector = precision.generate_vector(ref_pmids, similarity_df, args.classes)
         precision_5 = list(np.mean(vector, axis=0).round(4))
 
         # 5) Load the previously saved best precision value
@@ -133,13 +131,12 @@ def objective_wrapper(args):
     return objective
 
 
-def run_optuna_optimization(args, log_file=None, n_trials=10, n_jobs=1):
+def run_optuna_optimization(args, n_trials=10, n_jobs=1):
     """
     Runs an Optuna optimization process.
 
     Parameters:
         args: Various configuration and running parameters for the optimization.
-        log_file (str, optional): Path to a log file where results should be recorded. Default is None.
         n_trials (int, optional): The number of trials to conduct. Default is 10.
         n_jobs (int, optional): The number of jobs to run in parallel. Default is 1.
 
@@ -148,8 +145,11 @@ def run_optuna_optimization(args, log_file=None, n_trials=10, n_jobs=1):
     """
 
     # 1) Define the log file to log the results
-    logging.basicConfig(filename=log_file, level=logging.INFO,
-                        format='%(asctime)s - %(levelname)s: %(message)s')
+    log_directory = f"output_{args.classes}"
+    if not os.path.exists(log_directory):
+        os.makedirs(log_directory)
+    log_file = f"output_{args.classes}/Optuna_trials_{args.classes}.log"
+    logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(levelname)s: %(message)s')
 
     # 2) Define the SQLite storage backend for the study
     study_storage = f"sqlite:///output_{args.classes}/optuna_study_storage_{args.classes}.db"
@@ -170,10 +170,11 @@ def run_optuna_optimization(args, log_file=None, n_trials=10, n_jobs=1):
         restored_sampler = pickle.load(open(sampler_file, "rb"))
         print('Loading the existing study sampler!')
     except:
-        restored_sampler = None
+        restored_sampler = optuna.samplers.TPESampler(seed=42)
+        print('Creating new study sampler!')
 
     # 4) Load the existing study or create a new one
-    study = optuna.create_study(direction='maximize', study_name="Doc2Vec_tuning",
+    study = optuna.create_study(direction='maximize', study_name="Word2         Doc2Vec_tuning",
                                 storage=study_storage, load_if_exists=True, sampler=restored_sampler)
 
     # 5) Define a callback to log the trial information
@@ -198,8 +199,7 @@ def run_optuna_optimization(args, log_file=None, n_trials=10, n_jobs=1):
             pbar.update(1)
             callback(study, trial)
 
-        study.optimize(objective_wrapper(args), n_trials=n_trials,
-                       callbacks=[pbar_callback], n_jobs=n_jobs)
+        study.optimize(objective_wrapper(args), n_trials=n_trials, callbacks=[pbar_callback], n_jobs=n_jobs)
 
     # 7) Save the study state
     study.trials_dataframe().to_csv(
@@ -213,8 +213,7 @@ def run_optuna_optimization(args, log_file=None, n_trials=10, n_jobs=1):
     print('Best evaluation values:', study.best_trial.value)
     print('Best trial:', study.best_trial.params)
     logging.info('Best trial overall: %s', study.best_trial.params)
-    logging.info('with (Best) evaluation value overall: %s',
-                 study.best_trial.value)
+    logging.info('with (Best) evaluation value overall: %s', study.best_trial.value)
     logging.info("")
 
     return study.best_trial.params, study.best_trial.number

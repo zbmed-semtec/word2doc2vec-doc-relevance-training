@@ -51,11 +51,10 @@ if __name__ == "__main__":
 
     # 5) Define the file paths to store the evaluation results
     log_file = os.path.join(results_directory, f"Optuna_{args.classes}.log")
-    precision_file = os.path.join(
-        results_directory, f"precision_{args.classes}.tsv")
+    precision_file = os.path.join(results_directory, f"precision_{args.classes}.tsv")
     dcg_file = os.path.join(results_directory, f"dcg_{args.classes}.tsv")
     idcg_file = os.path.join(results_directory, f"idcg_{args.classes}.tsv")
-    ndcg_file = os.path.join(results_directory, f"ndcg_{args.classes}.tsv")
+    ndcg_file = os.path.join(results_directory, f"ndcg_{args.classes}.tsv")    
 
     # 6) Run optuna optimization based on the operating system
     # Optuna can run multiple trials concurrently using n_jobs parallel processes or threads
@@ -63,20 +62,17 @@ if __name__ == "__main__":
         from optunaTuningWindows import run_optuna_optimization
         start = time.time()
         # NOTE: FOR OPTUNA HYPERPARAMETER REPRODUCIBILITY n_jobs should always be 1
-        best_params, best_trial = run_optuna_optimization(
-            args, n_trials=100, n_jobs=1)
+        best_params, best_trial = run_optuna_optimization(args, log_file=log_file, n_trials=100, n_jobs=6)
         print("Finished optuna optimization. Time taken:", time.time()-start)
     else:
         from optunaTuningUnix import run_optuna_optimization
         start = time.time()
         # NOTE: FOR OPTUNA HYPERPARAMETER REPRODUCIBILITY n_jobs should always be 1
-        best_params, best_trial = run_optuna_optimization(
-            args, n_trials=100, n_jobs=1)
+        best_params, best_trial = run_optuna_optimization(args, n_trials=1, n_jobs=1)
         print("Finished optuna optimization. Time taken:", time.time()-start)
 
     # 7) Define the file paths to store the similarity file based on optuna trial run results
-    similarity_file = os.path.join(
-        results_directory, f"best_cosine_similarity_{args.classes}.tsv")
+    similarity_file = os.path.join(results_directory, f"best_cosine_similarity_{args.classes}.tsv")
 
     # 8) Generate and save the precision matrix
     ref_pmids, data = precision.read_file(similarity_file)
