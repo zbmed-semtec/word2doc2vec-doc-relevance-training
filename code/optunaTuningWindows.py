@@ -179,7 +179,7 @@ def run_optuna_optimization(args, params, n_trials, n_jobs=1):
         print('Creating new study sampler!')
 
     # 4) Load the existing study or create a new one
-    study = optuna.create_study(direction='maximize', study_name="Word2         Doc2Vec_tuning",
+    study = optuna.create_study(direction='maximize', study_name="Word2Doc2Vec_tuning",
                                 storage=study_storage, load_if_exists=True, sampler=restored_sampler)
 
     # 5) Define a callback to log the trial information
