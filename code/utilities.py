@@ -143,7 +143,7 @@ def get_similarity_scores(input_relevance_matrix: str, embeddings_df: pd.DataFra
     """
 
     # 1) Read Relevance matrix
-    column_names = ["PID1", "PID2", "Value"]
+    column_names = ["PMID1", "PMID2", "Value"]
     relevance_matrix_df = pd.read_csv(
         input_relevance_matrix, sep="\t", names=column_names, skiprows=1)
 
@@ -156,7 +156,7 @@ def get_similarity_scores(input_relevance_matrix: str, embeddings_df: pd.DataFra
 
     # 4) Create a list of reference and assessed PMID pairs
     pmid_pairs = list(
-        zip(relevance_matrix_df["PID1"], relevance_matrix_df["PID2"]))
+        zip(relevance_matrix_df["PMID1"], relevance_matrix_df["PMID2"]))
 
     # 5) Calculate the cosine similarities between the document embeddings and update the relevance matrix dataframe
     for ref_pmid, assessed_pmid in tqdm.tqdm(pmid_pairs, total=len(pmid_pairs), desc="Calculating Similarities"):
@@ -166,8 +166,8 @@ def get_similarity_scores(input_relevance_matrix: str, embeddings_df: pd.DataFra
             if len(ref_pmid_vector) > 0 and len(assessed_pmid_vector) > 0:
                 cosine_similarity = round(calculate_cosine_similarity(
                     ref_pmid_vector, assessed_pmid_vector), 4)
-                relevance_matrix_df.loc[(relevance_matrix_df['PID1'] == ref_pmid) & (
-                    relevance_matrix_df['PID2'] == assessed_pmid), 'Cosine Similarity'] = cosine_similarity
+                relevance_matrix_df.loc[(relevance_matrix_df['PMID1'] == ref_pmid) & (
+                    relevance_matrix_df['PMID2'] == assessed_pmid), 'Cosine Similarity'] = cosine_similarity
             else:
                 continue
 
