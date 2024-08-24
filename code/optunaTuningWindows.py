@@ -61,7 +61,7 @@ def save_model_data(args, model, embeddings, similarity):
 def objective_wrapper(args, params):
     def objective(trial):
 
-        # 1) Suggest hyperparameters for fastText
+        # 1) Suggest hyperparameters for Word2vec
         sg = trial.suggest_int('sg', *params['sg']['values'])
         vector_size = trial.suggest_int(
             'vector_size',
