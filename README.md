@@ -1,82 +1,68 @@
-# Word2doc2vec-Doc-relevance
-This repository focuses on an approach exploring and assessing literature-based doc-2-doc recommendations using the Word2Vec technique, followed  centroid aggregation method to create document-level embeddings. The approach is applied to the RELISH dataset.
+# Word2doc2vec-Doc-relevance-training
+This repository focuses on an approach exploring and evaluating literature-based document-to-document (doc-2-doc) recommendations based on the Word2Vec technique. The approach involves generating document-level embeddings through centroid aggregation of word embeddings. The dataset used is the RELISH Corpus, an expert-curated collection of biomedical literature consisting of pairwise document assessments. The workflow comprises of training Word2Vec models on a predefined training set, followed by the assessment of doc-2-doc recommendations on a distinct test set. Additionally, Optuna is utilized to optimize the hyperparameters of the trained Word2Vec models.
 
-## Table of Contents
+## 📚🔍Table of Contents
 
-1. [About](#about)
-2. [Input Data](#input-data)
-3. [Pipeline](#pipeline)
-    1. [Generate Embeddings](#generate-embeddings)
-        - [Using Trained Word2Vec models](#using-trained-word2vec-models)
-          - [Parameters](#parameters)
-          - [Hyperparameters](#hyperparameters)
-        - [Using Pre-trained Word2Vec models](#using-pre-trained-word2vec-models)
-        - [Document Embeddings](#document-embeddings)
-    2. [Calculate Cosine Similarity](#calculate-cosine-similarity)
-    3. [Evaluation](#evaluation)
-        - [Precision@N](#precisionn)
-        - [nDCG@N](#ndcgn)
-4. [Code Implementation](#code-implementation)
-5. [Getting Started](#getting-started)
-6. [Tutorial](#tutorial)
+1. [About](#📝-about)
+2. [Input Data](#📂input-data)
+3. [Pipeline](#🛠️pipeline)
+    1. [Train and Optimize Word2vec models](#🧠⚙️-train-and-optimize-word2vec-models)
+    2. [Calculate Cosine Similarity](#📐🔄calculate-cosine-similarity)
+    3. [Evaluation](#📈📋-evaluation)
+        - [Precision@N](#🎯precisionn)
+        - [nDCG@N](#📊-ndcgn)
+4. [Getting Started](#🚀-getting-started)
 
-## About
 
-Our approach involves utilizing [Word2Vec](https://arxiv.org/pdf/1310.4546.pdf) for capturing word-level semantics and generating word embeddings. We then employ the centroid approach to create document-level embeddings, which entails calculating the centroids of word embeddings within each document's title and abstract. For word embeddings, we utilize both pretrained and trained models.
+## 📝 About
 
-## Input Data
+Our approach involves utilizing [Word2Vec](https://arxiv.org/pdf/1310.4546.pdf) for capturing word-level semantics and generating word embeddings. By averaging these word vectors, our centroid approach aggregates the individual word embeddings into a unified document-level representation, facilitating more effective analysis and comparison of documents based on their titles and abstracts.
 
-The input data for this method consists of preprocessed tokens derived from the RELISH documents. These tokens are stored in the RELISH.npy file, which contains preprocessed arrays comprising PMIDs, document titles, and abstracts. These arrays are generated through an extensive preprocessing pipeline, as elaborated in the [relish-preprocessing repository](https://github.com/zbmed-semtec/relish-preprocessing). Within this preprocessing pipeline, both the title and abstract texts undergo several stages of refinement: structural words are eliminated, text is converted to lowercase, and finally, tokenization is employed, resulting in arrays of individual words.
+## 📂Input Data
 
-## Pipeline
+The input data for this method includes preprocessed tokens derived from the RELISH documents, a specialized database curated by experts for benchmarking document similarity in biomedical literature. The RELISH dataset comprises a JSON file containing PubMed IDs (PMIDs) along with document-to-document relevance assessments categorized as "relevant," "partial," or "irrelevant." Titles and abstracts of the associated articles were retrieved and stored in a TSV file. 
 
-The following section outlines the process of generating document-level embeddings through hyperparameter optimization, computing the cosine similarity scores and evaluating the given similarity results with the relevance matrix.
+The title and abstract text are preprocessed, and the resulting tokens are stored in the RELISH.npy file, which includes arrays of PMIDs, document titles, and abstracts. These arrays are produced through an extensive preprocessing pipeline, detailed in the [relish-preprocessing repository](https://github.com/zbmed-semtec/relish-preprocessing). This pipeline includes several refinement stages for both titles and abstracts: structural words are removed, text is converted to lowercase, and tokenization is applied to create arrays of individual words. The resulting preprocessed tokens are divided into training and test sets based on specific criteria detailed [here](https://github.com/zbmed-semtec/relish-preprocessing?tab=readme-ov-file#splitting-the-data). These splits are then saved as two separate .npy files.
 
-### Generate Embeddings
-The following section outlines the process of generating document-level embeddings out of word-level embeddings for each PMID of the RELISH corpus.
+Additionally, the ground truth relevance assessments are used to evaluate the accuracy of the doc-2-doc recommendations, ensuring that the method's results align with expert judgments.
 
-#### Using Trained Word2Vec models
-We construct Word2Vec models with customizable hyperparameters. We employ the parameters shown below in order to generate our models.
+
+## 🛠️Pipeline
+
+The following section outlines the process of generating document-level embeddings out of word-level embeddings for each PMID of the RELISH corpus through hyperparameter optimization, computing the cosine similarity scores and evaluating the given similarity results with the relevance matrix.
+
+## 🧠⚙️ Train and Optimize Word2vec models
+We create and train Word2vec models with customizable hyperparameters to comprehend the connections between documents and words in a high-dimensional vector space. We aim to optimize these hyperparameters to establish the most effective relationship between cosine similarity and document relevance.
+
+To accomplish this we begin by splitting the dataset into a training set and a testing set. The training set is then used to train the Word2vec model, where we explore various hyperparameters to optimize its performance. This optimization process is crucial for enhancing the model's ability to capture meaningful relationships between cosine similarity and document relevance. For each set of hyperparameters, a Word2vec model is trained on the training split.
+
+Following this, we evaluate the model's performance on the testing set using Precision@5 as our evaluation metric.
+
 ##### Parameters
 
-+ **sg:** {1,0} Refers to the training algorithm. If sg=1, skim grams is used otherwise, continuous bag of words (CBOW) is used.
-+ **vector_size:** It represents the number of dimensions our embeddings will have.
-+ **window:** It represents the maximum distance between the current and predicted word.
-+ **epochs:** It is the nuber of iterations of the training dataset.
-+ **min_count:** It is the minimum number of appearances a word must have to not be ignored by the algorithm.
++ **sg:** {1,0} Refers to the training algorithm. If sg=1, skip-gram is used otherwise, continuous bag of words is used.
++ **vector_size:** It represents the dimensions of the generated embeddings, with options of 200, 300 and 400 in our case.
++ **window:** Represents the maximum distance between the current and predicted word, with values fof 5,6 and 7 in our case.
++ **epochs:** Refers to the number of iterations over the training dataseta and is set at 15 in this context.
++ **min_count:** It is the minimum number of appearances a word must have to not be ignored by the algorithm and is configured at 1, 2 and 3 in our case.
 
-#### Hyperparameters
-The hyperparameters can be modified in [`hyperparameters_word2vec.json`](./data/hyperparameters_word2vec.json)
-#### Using Pre-trained Word2Vec models
-By default, we make use of the Gensim Word2Vec model "word2vec-google-news-300" to generate pre-trained word embeddings.
-#### Document Embeddings
-Document embeddings are created by computing the centroids of all provided word embeddings within each title and abstract document. The resulting embeddings generated from various model hyperparameter configurations are stored. These embeddings, along with their respective PMIDs, are saved as a dataframe in a pickle file. Each specific set of hyperparameter combination results in having a separate pickle file.
+## 📐🔄Calculate Cosine Similarity
 
-### Calculate Cosine Similarity
+Following hyperparameter optimization where the best model gets saved, embeddings are generated for the test dataset using this trained model. Subsequently, cosine similarity is calculated for the test dataset embeddings, providing a measure of similarity between pairs of documents based on their learned representations. This enables the generation of a 4-column matrix [ PMID1 | PMID2 | Relevance | Cosine similarity ] containing cosine similarity scores for existing pairs of PMIDs within our corpus. For a more detailed explanation of the process, please refer to this [documentation](https://github.com/zbmed-semtec/medline-preprocessing/tree/main/code/Cosine_Similarity).
 
-To assess the similarity between two documents within the RELISH corpus, we employ the Cosine Similarity metric. This process enables the generation of a 4-column matrix containing cosine similarity scores for existing pairs of PMIDs within our corpus. For a more detailed explanation of the process, please refer to this [documentation](https://github.com/zbmed-semtec/medline-preprocessing/tree/main/code/Cosine_Similarity).
+## 📈📋 Evaluation
 
-## Evaluation
+The effectiveness of the embeddings in capturing document-to-document similarity is assessed using two metrics: Precision@N and nDCG@N.
 
-### Precision@N
+### 🎯Precision@N
 
-In order to evaluate the effectiveness of this approach, we make use of Precision@N. Precision@N measures the precision of retrieved documents at various cutoff points (N).We generate a Precision@N matrix for existing pairs of documents within the RELISH corpus, based on the original RELISH JSON file. The code determines the number of true positives within the top N pairs and computes Precision@N scores. The result is a Precision@N matrix with values at different cutoff points, including average scores. For detailed insights into the algorithm, please refer to this [documentation](https://github.com/zbmed-semtec/medline-preprocessing/tree/main/code/Precision%40N_existing_pairs).
+Precision@N measures the precision of retrieved documents at various cutoff points (N).We generate a Precision@N matrix for existing pairs of documents within the RELISH corpus, based on the original RELISH JSON file. The [code](code/precision.py) determines the number of true positives within the top N pairs and computes Precision@N scores. The result is a Precision@N matrix with values at different cutoff points, including average scores. For detailed insights into the algorithm, please refer to this [documentation](https://github.com/zbmed-semtec/medline-preprocessing/tree/main/code/Precision%40N_existing_pairs).
 
-### nDCG@N
+### 📊 nDCG@N
 
 Another metric used is the nDCG@N (normalized Discounted Cumulative Gain). This ranking metric assesses document retrieval quality by considering both relevance and document ranking. It operates by using a TSV file containing relevance and cosine similarity scores, involving the computation of DCG@N and iDCG@N scores. The result is an nDCG@N matrix for various cutoff values (N) and each PMID in the corpus, with detailed information available in the [documentation](https://github.com/zbmed-semtec/medline-preprocessing/tree/main/code/Evaluation).
 
-## Code Implementation
-
-The [`generate_embeddings.py`](./code/generate_embeddings.py) script uses the RELISH Tokenized npy file as input and supports the generation and training of Word2Vec models, generation of embeddings and saving the embeddings as pickle files.
-
-The script consists of two main functions `generateWord2VecModel` and `generateDocumentEmbeddings`.
-
-`generateWord2VecModel` : This function creates a Word2vec model using the provided sentences and the inputer hyper parameter.
-
-`generateDocumentEmbeddings` :  This function generates document embeddings from titles and abstracts using Word2Vec and centroid calculations. It can utilize either an existing or a default pretrained model for word embeddings and saves the results as .npy or .pkl files based on the specified format.
-
-## Getting Started
+## 🚀 Getting Started
 
 To get started with this project, follow these steps:
 
@@ -86,14 +72,14 @@ First, clone the repository to your local machine using the following command:
 ###### Using HTTP:
 
 ```
-git clone https://github.com/zbmed-semtec/word2doc2vec-doc-relevance.git
+git clone https://github.com/zbmed-semtec/word2doc2vec-doc-relevance-training.git
 ```
 
 ###### Using SSH:
 Ensure you have set up SSH keys in your GitHub account.
 
 ```
-git clone git@github.com:zbmed-semtec/word2doc2vec-doc-relevance.git
+git clone git@github.com:zbmed-semtec/word2doc2vec-doc-relevance-training.git
 ```
 
 ### Step 2: Create a virtual environment and install dependencies
@@ -111,7 +97,7 @@ To confirm if the virtual environment is activated and check the location of you
 which python    # On Windows command prompt, use 'where python'
                 # On Windows PowerShell, use 'Get-Command python'
 ```
-The code is stable with python 3.6 and higher. The required python packages are listed in the requirements.txt file. To install the required packages, run the following command:
+The code is stable with python 3.9 and higher. The required python packages are listed in the requirements.txt file. To install the required packages, run the following command:
 
 ```
 pip install -r requirements.txt
@@ -123,103 +109,68 @@ To deactivate the virtual environment after running the project, run the followi
 deactivate
 ```
 
-### Step 3: Generate Embeddings
-The [`generate_embeddings.py`](./code/generate_embeddings.py) script uses the RELISH Tokenized npy file as input and includes a default parameter json with preset hyperparameters. You can easily adapt it for different values and parameters by modifying the [`hyperparameters_word2vec.json`](./data/hyperparameters_word2vec.json). Make sure to have the RELISH Tokenized.npy file within the directory under the data folder.
+### Step 3: Dataset
+
+
+- Use the [Download_Dataset.sh](./Download_Dataset.sh) script to download the Split Dataset by running the following commands:
 
 ```
-python3 code/generate_embeddings.py [-i INPUT PATH] [-o OUTPUT PATH] [-pj PARAMS JSON] [-up USE PRETRAINED]
+chmod +777 Download_Dataset.sh
+./Download_Dataset.sh
+```
+This script makes sure that the necessary folders are created and the files are downloaded in the corresponding folders.
+
+**OR**
+
+
+- You could also download the dataset from this link: [Split_Dataset](https://drive.google.com/drive/folders/1Bq_U5207utn7tvSt_HLVdOdYR5QW7MMN). Please make sure to keep the data in the below specified format.
+
+```
+📦 /word2doc2vec-doc-relevance-training
+└─ data
+   └─ Split_Dataset
+      ├─ Data
+      │  ├─ train.npy
+      │  ├─ test.npy
+      └─ Ground_truth
+         ├─ train.tsv
+         └─ test.tsv
+
 ```
 
-You must pass the following arguments:
 
-+ -i/ --input : File path to the RELISH tokenized .npy file.
-+ -o/ --output : File path to the resulting embeddings in pickle file format.
-+ -pj/ --params_json : File path to the word2vec hyperparameters JSON.
-+ -up/ --use_pretrained : Whether to use a pretrained Word2Vec model (1) or not (0), uses word2vec-google-news-300 if True.
+### Step 4: Optimization Pipeline
+
+This pipeline aims to optimize hyperparameters for a Word2vec model using Optuna, train the model with the optimal parameters, and evaluate its performance using precision at N (Precision@N) and normalized discounted cumulative gain (NDCG) metrics.
+
+Steps:
++ Hyperparameter Optimization: Utilizes Optuna to search for the best hyperparameters for the fastText model.
++ Model Training: Trains the fastText model with the optimal hyperparameters using 80% of the training split data.
++ Embedding Generation: Generates embeddings for the remaining 20% of the test split data using the trained model.
++ Cosine Similarity Computation: Calculates cosine similarities for the generated embeddings.
++ Precision@N Calculation: Computes Precision@N scores, a measure of the relevance of retrieved documents, for the obtained cosine similarities.
++ NDCG Score Calculation: Computes normalized discounted cumulative gain (NDCG) scores, which assesses the quality of ranked search results based on relevance assessments.
+
+In order to start the pipeline execution use this script, and run the following command:
+
+ ``` 
+python3 code/main.py [-i INPUT TRAIN FILE] [-t TEST_FILE] [-g GROUND_TRUTH_FILE] [-c NO_OF CLASSES] [-win WINDOWS/LINUX]
+ ``` 
+
+ You must pass the following four arguments:
+
++ -i/ --input : File path to the RELISH Train split dataset (.npy file format).
++ -t/ --test : File path to the RELISH Test split dataset (.npy file format).
++ -g/ --ground_truth : File path for the Test split ground truth (.tsv file format).
++ -c/ --classes : No. of classes to perform optimization on (Integer 2 or 3/ Default value is 3).
++ -win/ --windows : 1 - if using Windows systems; 0 - if using Unix-like systems (including Ubuntu)
 
 To run this script, please execute the following command:
 
-```
-python3 code/generate_embeddings.py --input data/RELISH/Tokenized_Input/RELISH_Tokenized_Sample.npy --output data/ --params_json data/hyperparameters_word2vec.json --use_pretrained 0 
-```
+ ``` 
+python3 code/main.py -i data/Split_Dataset/Data/train.npy -t data/Split_Dataset/Data/test.npy -gt data/Split_Dataset/Ground_truth/test.tsv -c 3 -win 0
+ ``` 
 
-The script will create document embeddings, and store them in separate directories. You should expect to find a total of 18 files corresponding to the various models, embeddings, and embedding pickle files.
+Precision@N and NDCG scores are saved as TSV files in the following folder path: `\output_2\evaluation\`  for 2 class distribution and `\output_3\evaulation\` for 3 class distribution for further analysis and reporting.
 
-### Step 4: Calculate Cosine Similarity
-In order to generate the cosine similarity matrix and execute this [script](./code/generate_cosine_existing_pairs.py), run the following command:
-
-```
-python3 code/generate_cosine_existing_pairs.py [-i INPUT PATH] [-e EMBEDDINGS] [-o OUTPUT PATH] [-c DOC EMBEDDINGS COUNT]
-```
-
-You must pass the following four arguments:
-
-+ -i/ --input : File path to the RELISH relevance matrix in the TSV format.
-+ -e/ --embeddings : File path to the embeddings in the pickle file format.
-+ -o/ --output : File path for the output 4 column cosine similarity matrix.
-+ -c/ --doc_embeddings_count : Number of document embeddings generated to be evaluated on the cosine similarity matrix.
-
-For example, if you are running the code from the code folder and have the RELISH relevance matrix in the data folder, run the cosine matrix creation for all hyperparameters as:
-
-```
-python3 code/generate_cosine_existing_pairs.py -i data/relevance_w2v_blank.tsv -e data/ -o data/w2v_relevance -c 18
-```
-
-### Step 5: Precision@N
-In order to calculate the Precision@N scores and execute this [script](/code/precision.py), run the following command:
-
-```
-python3 code/precision.py [-c COSINE FILE PATH]  [-o OUTPUT PATH]
-```
-
-You must pass the following two arguments:
-
-+ -c/ --cosine_file_path: path to the 4-column cosine similarity existing pairs RELISH file: (tsv file)
-+ -o/ --output_path: path to save the generated precision matrix: (tsv file)
-
-For example, if you are running the code from the code folder and have the cosine similarity TSV file in the data folder, run the precision matrix creation for the first hyperparameter as:
-
-```
-python3 code/precision.py -c data/w2v_relevance_0.tsv -o data/w2v_precision_0.tsv
-```
-
-
-### Step 6: nDCG@N
-In order to calculate nDCG scores and execute this [script](/code/calculate_gain.py), run the following command:
-
-```
-python3 code/calculate_gain.py [-i INPUT]  [-o OUTPUT]
-```
-
-You must pass the following two arguments:
-
-+ -i / --input: Path to the 4 column cosine similarity existing pairs RELISH TSV file.
-+ -o/ --output: Output path along with the name of the file to save the generated nDCG@N TSV file.
-
-For example, if you are running the code from the code folder and have the 4 column RELISH TSV file in the data folder, run the matrix creation for the first hyperparameter as:
-
-```
-python3 code/calculate_gain.py -i data/w2v_relevance_0.tsv -o data/w2v_ndcg_0.tsv
-```
-
-### Step 7: Compile Results
-
-In order to compile the average result values for Precison@ and nDCG@N and generate a single TSV file each, please use this [script](code/show_avg.py).
-
-You must pass the following two arguments:
-
-+ -i / --input: Path to the directory consisting of all the precision matrices/gain matrices.
-+ -o/ --output: Output path along with the name of the file to save the generated compiled Precision@N / nDCG@N TSV file.
-
-
-If you are running the code from the code folder, run the compilation script as:
-
-```
-python3 code/evaluation/show_avg.py -i data/output/gain_matrices/ -o data/output/results_gain.tsv
-```
-
-NOTE: Please do not forget to put a `'/'` at the end of the input file path.
-
-
-## Tutorial
-A [tutorial](./docs/Tutorial.ipynb) is accessible in the form of Jupyter notebook for the generation of embeddings.
+Make sure to run the model training twice for both the class distributions by changing the value of the -c/ --classes flag to 2 and 3.
