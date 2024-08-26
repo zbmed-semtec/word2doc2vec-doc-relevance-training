@@ -11,7 +11,7 @@ This repository focuses on an approach exploring and evaluating literature-based
     3. [Evaluation](#📈📋-evaluation)
         - [Precision@N](#🎯precisionn)
         - [nDCG@N](#📊-ndcgn)
-4. [Code Implementation]()
+4. [Code Implementation](#🧑‍💻🧩-code-implementation)
 5. [Getting Started](#🚀-getting-started)
 
 
