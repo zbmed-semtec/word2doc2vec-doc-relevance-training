@@ -11,7 +11,8 @@ This repository focuses on an approach exploring and evaluating literature-based
     3. [Evaluation](#📈📋-evaluation)
         - [Precision@N](#🎯precisionn)
         - [nDCG@N](#📊-ndcgn)
-4. [Getting Started](#🚀-getting-started)
+4. [Code Implementation]()
+5. [Getting Started](#🚀-getting-started)
 
 
 ## 📝 About
@@ -61,6 +62,22 @@ Precision@N measures the precision of retrieved documents at various cutoff poin
 ### 📊 nDCG@N
 
 Another metric used is the nDCG@N (normalized Discounted Cumulative Gain). This ranking metric assesses document retrieval quality by considering both relevance and document ranking. It operates by using a TSV file containing relevance and cosine similarity scores, involving the computation of DCG@N and iDCG@N scores. The result is an nDCG@N matrix for various cutoff values (N) and each PMID in the corpus, with detailed information available in the [documentation](https://github.com/zbmed-semtec/medline-preprocessing/tree/main/code/Evaluation).
+
+
+## 🧑‍💻🧩 Code Implementation
+
++ The [`main.py`](code/main.py) serves as a comprehensive wrapper function, supporting the model generation, training, embedding generation, cosine similarity matrix calculation, precision calculation and gain calculation in one pipeline. Individual functions for each task are provided in the other scripts.
+
++ [`optunaTuningUnix.py`](code/optunaTuningUnix.py) / [`optunaTuningWindows.py`](code/optunaTuningWindows.py) : The code utilizes Optuna for hyperparameter optimization of Word2vec model. It suggests hyperparameters for Word2vec, trains models, evaluates precision@5, and selects the best trial. The optimization process iterates over several trials, updating progress with a progress bar. The scripts are designed to run the pipeline on either Unix or Windows systems.
+
++ [`train.py`](code/train.py): This script trains a Word2vec model using specified hyperparameters, saves the model if specified, generates embeddings for test data, computes cosine similarity scores, and saves them to a file. It logs progress to a file specified by log_file.
+
++ [`utilities.py`](code/utilities.py): This script includes functions for parsing and reading input tokens, creation and training of Word2vec models, generation of embeddings, centroid aggregation of word embeddings to generate document embeddings, calculation of cosine similarity, generation of similarity matrix.
+
++ [`precision.py`](code/precision.py): This script reads a TSV file containing cosine similarity pairs, calculates precision scores at various values of n for each PMID, and writes the results along with average precision scores to a new TSV file.
+
++ [`calculate_gain.py`](code/calculate_gain.py): This script calculates normalized discounted cumulative gain (nDCG) scores for relevance assessment based on cosine similarity values, sorts data accordingly, and writes results including average nDCG scores to a TSV file. It utilizes the cosine similarity matrix provided and performs operations per PMID.
+
 
 ## 🚀 Getting Started
 
