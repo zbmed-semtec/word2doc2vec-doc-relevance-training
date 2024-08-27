@@ -185,7 +185,7 @@ python3 code/main.py [-i INPUT TRAIN FILE] [-t TEST_FILE] [-g GROUND_TRUTH_FILE]
 To run this script, please execute the following command:
 
  ``` 
-python3 code/main.py -i data/Split_Dataset/Data/train.npy -t data/Split_Dataset/Data/test.npy -gt data/Split_Dataset/Ground_truth/test.tsv -c 3 -win 0
+python3 code/main.py -i data/Split_Dataset/Data/train.npy -t data/Split_Dataset/Data/test.npy -g data/Split_Dataset/Ground_truth/test.tsv -c 3 -win 0
  ``` 
 
 Precision@N and NDCG scores are saved as TSV files in the following folder path: `\output_2\evaluation\`  for 2 class distribution and `\output_3\evaulation\` for 3 class distribution for further analysis and reporting.
