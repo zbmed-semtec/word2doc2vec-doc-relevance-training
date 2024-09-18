@@ -10,7 +10,7 @@ from gensim.models import Word2Vec
 
 def run_pretrained(args, model_directory):
 
-    # 1) Load the pre-trained fastText model
+    # 1) Load the pre-trained Word2vec model
     try:
         model = api.load('word2vec-google-news-300')
         logging.info("Pre-trained Word2Vec model loaded successfully.")
