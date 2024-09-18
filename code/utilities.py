@@ -27,18 +27,6 @@ def createWord2VecModel(docs: List[List[str]], params: dict):
     # Save the model to a file
     model.save("word2vec_RELISH")
     return model
-    # import itertools
-    # corpus_iterable = list(itertools.chain.from_iterable(docs))
-    # sentence_list = []
-    # for doc in docs:
-    #     sentence_list.append(doc)
-    # # params['sentences'] = sentence_list
-    # model = Word2Vec(**params)
-    # model.build_vocab(corpus_iterable)
-    # model.train([corpus_iterable], total_examples=model.corpus_count,
-    #             epochs=model.epochs)
-    # model.save("word2vec_RELISH")
-    # return model
 
 # Retrieves cleaned data from RELISH and TREC npy files
 def process_data_from_npy(file_path_in: str = None) -> Union[List[str], List[List[str]], List[List[str]], List[List[str]]]:
@@ -191,7 +179,7 @@ def save_similarity_to_tsv(df: pd.DataFrame, output_file: str) -> None:
     """
     df.to_csv(output_file, index=False, sep="\t")
 
-def generate_embeddings(model: Word2Vec, pmids: str, article_doc: list) -> pd.DataFrame:
+def generate_embeddings(model: Word2Vec, pmids: str, article_doc: list, pre_trained: int) -> pd.DataFrame:
     '''
     Generates document embeddings from titles and abstracts in a given paper using Word2Vec and calculating the centroids 
     of all given word embeddings.
@@ -204,7 +192,8 @@ def generate_embeddings(model: Word2Vec, pmids: str, article_doc: list) -> pd.Da
         The list of all PMIDs which are processed.
     article_doc: list of list of str
         A two-dimensional list of all tokenized article documents (title + abstract).
-    
+    pre_trained: int
+        Whether to use a pre-trained model or not.
     Returns
     -------
     embeddings_df : pd.DataFrame
@@ -224,12 +213,20 @@ def generate_embeddings(model: Word2Vec, pmids: str, article_doc: list) -> pd.Da
         missing_words = 0
         # Retrieve word embeddings.
         embedding_list = []
-        for word in article_doc[iteration]:
-            word_count += 1
-            try:
-                embedding_list.append(model.wv[word])
-            except:
-                missing_words += 1
+        if pre_trained==1:
+            for word in article_doc[iteration]:
+                word_count += 1
+                try:
+                    embedding_list.append(model[word])
+                except:
+                    missing_words += 1
+        else:
+            for word in article_doc[iteration]:
+                word_count += 1
+                try:
+                    embedding_list.append(model.wv[word])
+                except:
+                    missing_words += 1
         if missing_words == word_count:
             print(f"OOV words for {pmids[iteration]}: {missing_words} from a total of {word_count} words")
         word_count = 0
@@ -250,7 +247,6 @@ def generate_embeddings(model: Word2Vec, pmids: str, article_doc: list) -> pd.Da
     data = {"PMID": pmids, "Embedding": document_embeddings}
     embeddings_df = pd.DataFrame(data)
     embeddings_df = embeddings_df.sort_values("PMID")
-    print("Null vector count:", null_vector_count)
     return embeddings_df, null_vector_count
 
 def save_embeddings_to_pickle(embeddings_df, output_file):

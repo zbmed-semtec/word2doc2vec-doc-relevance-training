@@ -4,6 +4,7 @@ import fnmatch
 import json
 import shutil
 import time
+import logging
 import argparse
 import utilities
 import precision
@@ -17,6 +18,7 @@ if __name__ == "__main__":
                         help="Path to valid ground truth .tsv file")
     parser.add_argument("-c", "--classes", type=int,
                         default=3, help="Number of classes")
+    parser.add_argument("-u", "--use_pretrained", type=int, default=0, help="1: use a pre-trained fastText model; 0: train a fastText model")
     parser.add_argument("-win", "--windows", type=int,
                         help="1: if using Windows systems; 0: if using Unix-like systems (including Ubuntu)")
     args = parser.parse_args()
@@ -62,20 +64,28 @@ if __name__ == "__main__":
             params = content['params']
             n_trials = content['iterations']['n_trials']['value']
 
-    # 7) Run optuna optimization based on the operating system
-    # Optuna can run multiple trials concurrently using n_jobs parallel processes or threads
-    if args.windows:
-        from optunaTuningWindows import run_optuna_optimization
-        start = time.time()
-        # NOTE: FOR OPTUNA HYPERPARAMETER REPRODUCIBILITY n_jobs should always be 1
-        best_params, best_trial = run_optuna_optimization(args, params, n_trials, n_jobs=1)
-        print("Finished optuna optimization. Time taken:", time.time()-start)
+    # 7) Use a Pre-trained model or Train a model and run optuna optimization based on the operating system
+    if args.use_pretrained:
+        from pretrained import run_pretrained
+        log_directory = f"output_{args.classes}"
+        if not os.path.exists(log_directory):
+            os.makedirs(log_directory)
+        log_file = f"output_{args.classes}/Optuna_trials_{args.classes}.log"
+        logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s - %(levelname)s: %(message)s')
+        run_pretrained(args, model_directory)
     else:
-        from optunaTuningUnix import run_optuna_optimization
-        start = time.time()
-        # NOTE: FOR OPTUNA HYPERPARAMETER REPRODUCIBILITY n_jobs should always be 1
-        best_params, best_trial = run_optuna_optimization(args, params, n_trials, n_jobs=1)
-        print("Finished optuna optimization. Time taken:", time.time()-start)
+        if args.windows:
+            from optunaTuningWindows import run_optuna_optimization
+            start = time.time()
+            # NOTE: FOR OPTUNA HYPERPARAMETER REPRODUCIBILITY n_jobs should always be 1
+            best_params, best_trial = run_optuna_optimization(args, params, n_trials, n_jobs=1)
+            print("Finished optuna optimization. Time taken:", time.time()-start)
+        else:
+            from optunaTuningUnix import run_optuna_optimization
+            start = time.time()
+            # NOTE: FOR OPTUNA HYPERPARAMETER REPRODUCIBILITY n_jobs should always be 1
+            best_params, best_trial = run_optuna_optimization(args, params, n_trials, n_jobs=1)
+            print("Finished optuna optimization. Time taken:", time.time()-start)
 
     # 8) Define the file paths to store the similarity file based on optuna trial run results
     similarity_file = os.path.join(results_directory, f"best_cosine_similarity_{args.classes}.tsv")

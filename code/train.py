@@ -39,7 +39,7 @@ def run(best_params, args, save_model=False):
     logging.info(f"Total OOV word count in test data: {total_oov_count}")
 
     # 5) Generate the embeddings: pd.DataFrame for loaded docs
-    embeddings_df, null_vector_count = utilities.generate_embeddings(model, pmids, docs)
+    embeddings_df, null_vector_count = utilities.generate_embeddings(model, pmids, docs, args.use_pretrained)
     logging.info(f"RELISH {dataset_type} Embeddings Pickle File Generated.")
     logging.info(f"Number of null vector documents in test data: {null_vector_count}")
 
