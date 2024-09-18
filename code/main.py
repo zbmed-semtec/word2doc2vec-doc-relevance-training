@@ -18,7 +18,7 @@ if __name__ == "__main__":
                         help="Path to valid ground truth .tsv file")
     parser.add_argument("-c", "--classes", type=int,
                         default=3, help="Number of classes")
-    parser.add_argument("-u", "--use_pretrained", type=int, default=0, help="1: use a pre-trained fastText model; 0: train a fastText model")
+    parser.add_argument("-u", "--use_pretrained", type=int, default=0, help="1: use a pre-trained Word2vec model; 0: train a Word2vec model")
     parser.add_argument("-win", "--windows", type=int,
                         help="1: if using Windows systems; 0: if using Unix-like systems (including Ubuntu)")
     args = parser.parse_args()
