@@ -44,9 +44,9 @@ def save_data_with_lock(file_path, data, save_function):
 def save_model_data(args, model, embeddings, similarity):
 
     # 1) Define the file path to save the model data
-    model_file = f"output_{args.classes}/model/Doc2Vec_best_model_{args.classes}"
-    embeddings_file = f"output_{args.classes}/embeddings/best_embeddings_{args.classes}.pkl"
-    similarity_file = f"output_{args.classes}/evaluation/best_cosine_similarity_{args.classes}.tsv"
+    model_file = f"output_{args.classes}/validation/Word2Vec_best_model_{args.classes}"
+    embeddings_file = f"output_{args.classes}/validation/valid_embeddings_{args.classes}.pkl"
+    similarity_file = f"output_{args.classes}/validation/valid_cosine_similarity_{args.classes}.tsv"
 
     # 2) Save the model
     save_data_with_lock(model_file, model, utilities.saveWord2Doc2VecModel)
@@ -86,7 +86,7 @@ def objective_wrapper(args, params):
         }
 
         # 3) run(): Trains the model with specified parameters and returns similarity scores, embeddings, and the trained model itself.
-        similarity_df, embeddings_df, model = run(params_dict, args, save_model=False)
+        similarity_df, embeddings_df, model = run(params_dict, args)
         """
             NOTE: The 'tuning' parameter dictates the dataset split used during the model run:
             - If 'tuning' is set to True, the Validation split is used for model tuning.

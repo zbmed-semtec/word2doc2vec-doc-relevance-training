@@ -1,5 +1,5 @@
 # Word2doc2vec-Doc-relevance-training
-This repository focuses on an approach exploring and evaluating literature-based document-to-document (doc-2-doc) recommendations based on the Word2Vec technique. The approach involves generating document-level embeddings through centroid aggregation of word embeddings. The dataset used is the RELISH Corpus, an expert-curated collection of biomedical literature consisting of pairwise document assessments. The workflow comprises of training Word2Vec models on a predefined training set, followed by the assessment of doc-2-doc recommendations on a distinct test set. Additionally, Optuna is utilized to optimize the hyperparameters of the trained Word2Vec models.
+This repository focuses on an approach exploring and evaluating literature-based document-to-document (doc-2-doc) recommendations based on the Word2Vec technique. The approach involves generating document-level embeddings through centroid aggregation of word embeddings. The dataset used is the RELISH Corpus, an expert-curated collection of biomedical literature consisting of pairwise document assessments. The workflow comprises of training Word2Vec models on a predefined training set, followed by the assessment of doc-2-doc recommendations on a distinct test set. Additionally, Optuna is utilized to optimize the hyperparameters of the trained Word2Vec models using the validation dataset.
 
 ## 📚🔍Table of Contents
 
@@ -23,9 +23,9 @@ Our approach involves utilizing [Word2Vec](https://arxiv.org/pdf/1310.4546.pdf) 
 
 The input data for this method includes preprocessed tokens derived from the RELISH documents, a specialized database curated by experts for benchmarking document similarity in biomedical literature. The RELISH dataset comprises a JSON file containing PubMed IDs (PMIDs) along with document-to-document relevance assessments categorized as "relevant," "partial," or "irrelevant." Titles and abstracts of the associated articles were retrieved and stored in a TSV file. 
 
-The title and abstract text are preprocessed, and the resulting tokens are stored in the RELISH.npy file, which includes arrays of PMIDs, document titles, and abstracts. These arrays are produced through an extensive preprocessing pipeline, detailed in the [relish-preprocessing repository](https://github.com/zbmed-semtec/relish-preprocessing). This pipeline includes several refinement stages for both titles and abstracts: structural words are removed, text is converted to lowercase, and tokenization is applied to create arrays of individual words. The resulting preprocessed tokens are divided into training and test sets based on specific criteria detailed [here](https://github.com/zbmed-semtec/relish-preprocessing?tab=readme-ov-file#splitting-the-data). These splits are then saved as two separate .npy files.
+The title and abstract text are preprocessed, and the resulting tokens are stored in the RELISH.npy file, which includes arrays of PMIDs, document titles, and abstracts. These arrays are produced through an extensive preprocessing pipeline, detailed in the [relish-preprocessing repository](https://github.com/zbmed-semtec/relish-preprocessing). This pipeline includes several refinement stages for both titles and abstracts: structural words are removed, text is converted to lowercase, and tokenization is applied to create arrays of individual words. The resulting preprocessed tokens are divided into training, validation and test sets based on specific criteria detailed [here](https://github.com/zbmed-semtec/relish-preprocessing?tab=readme-ov-file#splitting-the-data). These splits are then saved as three separate .npy files.
 
-Additionally, the ground truth relevance assessments are used to evaluate the accuracy of the doc-2-doc recommendations, ensuring that the method's results align with expert judgments.
+Additionally, the ground truth relevance assessments are used to evaluate the accuracy of the doc-2-doc recommendations, ensuring that the method's results align with expert judgments. For this, we make use of the validation ground truth TSV file for hyperparameter optimization and the test ground truth TSV file for the final evaluation.
 
 
 ## 🛠️Pipeline
@@ -35,9 +35,9 @@ The following section outlines the process of generating document-level embeddin
 ## 🧠⚙️ Train and Optimize Word2vec models
 We create and train Word2vec models with customizable hyperparameters to comprehend the connections between documents and words in a high-dimensional vector space. We aim to optimize these hyperparameters to establish the most effective relationship between cosine similarity and document relevance.
 
-To accomplish this we begin by splitting the dataset into a training set and a testing set. The training set is then used to train the Word2vec model, where we explore various hyperparameters to optimize its performance. This optimization process is crucial for enhancing the model's ability to capture meaningful relationships between cosine similarity and document relevance. For each set of hyperparameters, a Word2vec model is trained on the training split.
+To accomplish this we begin by splitting the dataset into a training set, a validation set and a testing set. The training set is then used to train the Word2vec model, where we explore various hyperparameters to optimize its performance. This optimization process is crucial for enhancing the model's ability to capture meaningful relationships between cosine similarity and document relevance. For each set of hyperparameters, a Word2vec model is trained on the training split.
 
-Following this, we evaluate the model's performance on the testing set using Precision@5 as our evaluation metric.
+Following this, we evaluate the model's performance on the validation set using Precision@5 as our evaluation metric.
 
 ##### Parameters
 
@@ -46,6 +46,9 @@ Following this, we evaluate the model's performance on the testing set using Pre
 + **window:** Represents the maximum distance between the current and predicted word, with values fof 5,6 and 7 in our case.
 + **epochs:** Refers to the number of iterations over the training dataseta and is set at 15 in this context.
 + **min_count:** It is the minimum number of appearances a word must have to not be ignored by the algorithm and is configured at 1, 2 and 3 in our case.
+
+## 💾⚙️Use a Pre-trained Model
+Additionaly, we also make use of the Pre-trained **'word2vec-google-news-300'** model. With this model, we generate embeddings and directly evaluate them on the test dataset.
 
 ## 📐🔄Calculate Cosine Similarity
 
@@ -66,11 +69,14 @@ Another metric used is the nDCG@N (normalized Discounted Cumulative Gain). This 
 
 ## 🧑‍💻🧩 Code Implementation
 
-+ The [`main.py`](code/main.py) serves as a comprehensive wrapper function, supporting the model generation, training, embedding generation, cosine similarity matrix calculation, precision calculation and gain calculation in one pipeline. Individual functions for each task are provided in the other scripts.
++ The [`main.py`](code/main.py) serves as a comprehensive wrapper function, supporting the model generation, training, embedding generation, cosine similarity matrix calculation, precision calculation and gain calculation in one pipeline and the final evaluation for the test dataset. Individual functions for each task are provided in the other scripts:
 
 + [`optunaTuningUnix.py`](code/optunaTuningUnix.py) / [`optunaTuningWindows.py`](code/optunaTuningWindows.py) : The code utilizes Optuna for hyperparameter optimization of Word2vec model. It suggests hyperparameters for Word2vec, trains models, evaluates precision@5, and selects the best trial. The optimization process iterates over several trials, updating progress with a progress bar. The scripts are designed to run the pipeline on either Unix or Windows systems.
 
-+ [`train.py`](code/train.py): This script trains a Word2vec model using specified hyperparameters, saves the model if specified, generates embeddings for test data, computes cosine similarity scores, and saves them to a file. It logs progress to a file specified by log_file.
++ [`train.py`](code/train.py): This script trains a Word2vec model using specified hyperparameters, saves the model if specified, generates embeddings for validation data, computes cosine similarity scores, and saves them to a file. It logs progress to a file specified by log_file.
+
++ [`pretrained.py`](code/pretrained.py): This script uses the Pre-trained 'word2vec-google-news-300' model, generates embeddings and computes cosine similarity directly for the test dataset.
+
 
 + [`utilities.py`](code/utilities.py): This script includes functions for parsing and reading input tokens, creation and training of Word2vec models, generation of embeddings, centroid aggregation of word embeddings to generate document embeddings, calculation of cosine similarity, generation of similarity matrix.
 
@@ -149,9 +155,11 @@ This script makes sure that the necessary folders are created and the files are 
       ├─ Data
       │  ├─ train.npy
       │  ├─ test.npy
+      │  ├─ valid.npy
       └─ Ground_truth
          ├─ train.tsv
-         └─ test.tsv
+         ├─ test.tsv
+         └─ valid.tsv
 
 ```
 
@@ -162,30 +170,33 @@ This pipeline aims to optimize hyperparameters for a Word2vec model using Optuna
 
 Steps:
 + Hyperparameter Optimization: Utilizes Optuna to search for the best hyperparameters for the fastText model.
-+ Model Training: Trains the fastText model with the optimal hyperparameters using 80% of the training split data.
-+ Embedding Generation: Generates embeddings for the remaining 20% of the test split data using the trained model.
++ Model Training: Trains the fastText model with the optimal hyperparameters using 90% of the training split data.
++ Embedding Generation: Generates embeddings for 5% of the validation split data using the trained model.
 + Cosine Similarity Computation: Calculates cosine similarities for the generated embeddings.
 + Precision@N Calculation: Computes Precision@N scores, a measure of the relevance of retrieved documents, for the obtained cosine similarities.
 + NDCG Score Calculation: Computes normalized discounted cumulative gain (NDCG) scores, which assesses the quality of ranked search results based on relevance assessments.
 
 In order to start the pipeline execution use this script, and run the following command:
 
- ``` 
-python3 code/main.py [-i INPUT TRAIN FILE] [-t TEST_FILE] [-g GROUND_TRUTH_FILE] [-c NO_OF CLASSES] [-win WINDOWS/LINUX]
- ``` 
+``` 
+python3 code/main.py [-i INPUT_TRAIN_FILE] [-t TEST_FILE] [-v VALIDATION_FILE] [-gt TEST_GROUND_TRUTH_FILE] [-gv VALIDATION_GROUND_TRUTH_FILE]  [-u USE_PRE_TRAINED_MODEL] [-c NO_OF CLASSES] [-win WINDOWS/LINUX]
+ ```  
 
  You must pass the following four arguments:
 
 + -i/ --input : File path to the RELISH Train split dataset (.npy file format).
-+ -t/ --test : File path to the RELISH Test split dataset (.npy file format).
-+ -g/ --ground_truth : File path for the Test split ground truth (.tsv file format).
-+ -c/ --classes : No. of classes to perform optimization on (Integer 2 or 3/ Default value is 3).
-+ -win/ --windows : 1 - if using Windows systems; 0 - if using Unix-like systems (including Ubuntu)
++ -t/ --test :  File path to the RELISH Test split dataset (.npy file format).
++ -v/ --valid: File path to the RELISH Validation split dataset (.npy file format).
++ -gt/ --test_ground_truth : File path for the Test split ground truth (.tsv file format).
++ -gv/ --valid_ground_truth : File path for the Validation split ground truth (.tsv file format).
++ -u/ --use_pretrained : This is an optional parameter whether to use a pretrained Word2vec model. 1 - if yes; 0 - if no. 
++ -c/  --classes : No. of classes to perform optimization on (Integer 2 or 3/ Default value is 3)
++ -win/ --windows : 1- if using Windows systems; 0- if using Unix-like systems (including Ubuntu)
 
 To run this script, please execute the following command:
 
- ``` 
-python3 code/main.py -i data/Split_Dataset/Data/train.npy -t data/Split_Dataset/Data/test.npy -g data/Split_Dataset/Ground_truth/test.tsv -c 3 -win 0
+``` 
+python3 code/main.py -i data/Split_Dataset/Data/train.npy -t data/Split_Dataset/Data/test.npy -v data/Split_Dataset/Data/valid.npy -gt data/Split_Dataset/Ground_truth/test.tsv -gv data/Split_Dataset/Ground_truth/valid.tsv -c 3 -win 0
  ``` 
 
 Precision@N and NDCG scores are saved as TSV files in the following folder path: `\output_2\evaluation\`  for 2 class distribution and `\output_3\evaulation\` for 3 class distribution for further analysis and reporting.
