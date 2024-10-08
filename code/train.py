@@ -5,7 +5,7 @@ import utilities as utilities
 import logging
 
 
-def run(best_params, args, save_model=False):
+def run(best_params, args):
 
     # 1) Load the training data
     train_pmids, train_docs = utilities.process_data_from_npy(args.input)

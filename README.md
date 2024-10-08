@@ -44,11 +44,12 @@ Following this, we evaluate the model's performance on the validation set using 
 + **sg:** {1,0} Refers to the training algorithm. If sg=1, skip-gram is used otherwise, continuous bag of words is used.
 + **vector_size:** It represents the dimensions of the generated embeddings, with options of 200, 300 and 400 in our case.
 + **window:** Represents the maximum distance between the current and predicted word, with values fof 5,6 and 7 in our case.
-+ **epochs:** Refers to the number of iterations over the training dataseta and is set at 15 in this context.
++ **epochs:** Refers to the number of iterations over the training dataseta and is set to vary between 5 and 15 in this context.
 + **min_count:** It is the minimum number of appearances a word must have to not be ignored by the algorithm and is configured at 1, 2 and 3 in our case.
 
-## 💾⚙️Use a Pre-trained Model
-Additionaly, we also make use of the Pre-trained **'word2vec-google-news-300'** model. With this model, we generate embeddings and directly evaluate them on the test dataset.
+## 💾⚙️Utilizing a Pre-trained Model
+Additionaly, we leverage the pre-trained **'word2vec-google-news-300'** model. Using this model, we generate word level embeddings for the test dataset, calculate centroid of word embeddings to generate document level embeddings, compute cosine similarity between the embeddings and evaluate them using precision@N and nDCG@N metrics.
+
 
 ## 📐🔄Calculate Cosine Similarity
 
@@ -76,7 +77,6 @@ Another metric used is the nDCG@N (normalized Discounted Cumulative Gain). This 
 + [`train.py`](code/train.py): This script trains a Word2vec model using specified hyperparameters, saves the model if specified, generates embeddings for validation data, computes cosine similarity scores, and saves them to a file. It logs progress to a file specified by log_file.
 
 + [`pretrained.py`](code/pretrained.py): This script uses the Pre-trained 'word2vec-google-news-300' model, generates embeddings and computes cosine similarity directly for the test dataset.
-
 
 + [`utilities.py`](code/utilities.py): This script includes functions for parsing and reading input tokens, creation and training of Word2vec models, generation of embeddings, centroid aggregation of word embeddings to generate document embeddings, calculation of cosine similarity, generation of similarity matrix.
 
