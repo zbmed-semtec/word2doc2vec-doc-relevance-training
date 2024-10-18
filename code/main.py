@@ -115,20 +115,9 @@ if __name__ == "__main__":
 
             # ------------------Final Evaluation (once for test data)------------------
 
-            # 9) Load the training data
-            train_pmids, train_docs = utilities.process_data_from_npy(args.input)
-
-            # 10) Train the model with 90% of the data and best parameters
-            start = time.time()
-            model = utilities.createWord2VecModel(train_docs, best_params)
-            logging.info(f"Trained model vocabulary size: {len(model.wv.key_to_index)}")
-            logging.info(f"Time taken to train the model: {time.time() - start} seconds")
-            logging.info("RELISH Word2Vec Model Generated.")
-            logging.info("Model is being used.")
-
-            # 11) Save the model
-            model_path = os.path.join(model_directory, f"model_{args.classes}")
-            utilities.saveWord2VecModel(model, model_path)
+           # 9) Loading the model
+           model_file = f"output_{args.classes}/validation/Word2Vec_best_model_{args.classes}"
+           model = utilities.loadModel(model_file)
 
             # 12) Loading test data
             test_pmids, test_docs = utilities.process_data_from_npy(args.test)
