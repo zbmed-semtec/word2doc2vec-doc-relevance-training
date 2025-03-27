@@ -1,5 +1,6 @@
 import tqdm
 import gensim
+import logging
 import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cosine
@@ -201,9 +202,9 @@ def generate_embeddings(model: Word2Vec, pmids: str, article_doc: list, pre_trai
     null_vector_count : int
         The count of documents that resulted in a null vector.
     '''
-
-    data_dict = {}
     missing_words = 0
+    total_missing_words = 0
+    total_unique_set_missing_words = []
     word_count = 0
     iteration = 0
     document_embeddings = []
@@ -227,12 +228,15 @@ def generate_embeddings(model: Word2Vec, pmids: str, article_doc: list, pre_trai
                     embedding_list.append(model.wv[word])
                 except:
                     missing_words += 1
-        if missing_words == word_count:
-            print(f"OOV words for {pmids[iteration]}: {missing_words} from a total of {word_count} words")
+                    total_missing_words += 1
+                    total_unique_set_missing_words.append(word)
+
+        logging.info(f"OOV words for {pmids[iteration]}: {missing_words} from a total of {word_count} words")
         word_count = 0
 
         # Generate document embeddings from word embeddings using word-vector centroids.
         if len(embedding_list) == 0:
+            logging.info(f"No word embeddings found for this document: {iteration} , {pmids[iteration]}")
             document_embeddings.append([])
             null_vector_count += 1  # Increment the counter when null vector is encountered
             continue
@@ -244,6 +248,7 @@ def generate_embeddings(model: Word2Vec, pmids: str, article_doc: list, pre_trai
             document[dim] = document[dim] / len(embedding_list)
         document_embeddings.append(document)
 
+    logging.info(f"Total missing words: {total_missing_words} and total unique words: {len(set(total_unique_set_missing_words))}")
     data = {"PMID": pmids, "Embedding": document_embeddings}
     embeddings_df = pd.DataFrame(data)
     embeddings_df = embeddings_df.sort_values("PMID")
